@@ -202,18 +202,22 @@
         CGFloat shearAngle;
         CGFloat rotateAngle;
         
-        if (index == 0 || index == self.stepCount - 1) {
-            shearAngle = (self.clockwise?1:-1) * ((2 * M_PI - self.angleSpan ) / 2 > M_PI / 6 ? M_PI / 6 : (2 * M_PI - self.angleSpan ) / 2);
-        } else {
-            shearAngle = (self.clockwise?1:-1) * self.angleStep;
-        }
+//        if (index == 0 || index == self.stepCount - 1) {
+//            shearAngle = (self.clockwise?1:-1) * ((2 * M_PI - self.angleSpan ) / 2 > M_PI / 6 ? M_PI / 6 : (2 * M_PI - self.angleSpan ) / 2);
+//        } else {
+//            shearAngle = (self.clockwise?1:-1) * self.angleStep;
+//        }
+        
+        shearAngle = (self.clockwise?1:-1) * self.angleStep;
     
-        if (index == 0) {
-            rotateAngle =  -shearAngle + self.startAngle;
-        } else {
-            rotateAngle = self.angleStep * (index - 1) + self.startAngle;
-            rotateAngle = (self.clockwise?1:-1) * self.angleStep  * (index - 1) + self.startAngle;
-        }
+//        if (index == 0) {
+//            rotateAngle =  -shearAngle + self.startAngle;
+//        } else {
+//            rotateAngle = self.angleStep * (index - 1) + self.startAngle;
+//            rotateAngle = (self.clockwise?1:-1) * self.angleStep  * (index - 1) + self.startAngle;
+//        }
+        
+        rotateAngle = (self.clockwise?1:-1) * self.angleStep  * index + self.startAngle;
     
         CGAffineTransform shearAffineTransform = CGAffineTransformMake(1.0, 0.0, cosf(shearAngle), sinf(shearAngle), 0.0, 0.0);
         
@@ -238,7 +242,8 @@
     if (_privateColors.count == 0) return 0;
     if (self.angleSpan < M_PI * 2) {
         if (_privateColors.count == 1) return 1;
-        else return _privateColors.count * 2 - 1 + 2;
+//        else return _privateColors.count * 2 - 1 + 2;
+        else return _privateColors.count * 2 - 1;
     } else {
         return _privateColors.count *  2;
     }
@@ -262,25 +267,25 @@
 
 - (NSArray*)colorsAtStep:(NSUInteger)index {
     assert (self.stepCount > 0 && index >= 0 && index < self.stepCount);
-    if (self.stepCount == 1) {
-        return @[(__bridge id)self.privateColors[0].CGColor, (__bridge id)self.privateColors[1%(self.privateColors.count)].CGColor];
-    } else if (self.angleSpan < M_PI * 2) {
-        if (index == self.stepCount - 1) {
-            return @[(__bridge id)self.privateColors[index/2-1].CGColor, (__bridge id)self.privateColors[index/2-1].CGColor];
-        } else if (index == 0) {
-            return @[(__bridge id)self.privateColors[0].CGColor, (__bridge id)self.privateColors[0].CGColor];
-        } else if (index % 2 == 1) {
-            return @[(__bridge id)self.privateColors[index / 2].CGColor, (__bridge id)self.privateColors[index / 2].CGColor];
-        } else {
-            return @[(__bridge id)self.privateColors[index / 2-1].CGColor, (__bridge id)self.privateColors[index/2].CGColor];
-        }
-    } else {
+//    if (self.stepCount == 1) {
+//        return @[(__bridge id)self.privateColors[0].CGColor, (__bridge id)self.privateColors[1%(self.privateColors.count)].CGColor];
+//    } else if (self.angleSpan < M_PI * 2) {
+//        if (index == self.stepCount - 1) {
+//            return @[(__bridge id)self.privateColors[index/2-1].CGColor, (__bridge id)self.privateColors[index/2-1].CGColor];
+//        } else if (index == 0) {
+//            return @[(__bridge id)self.privateColors[0].CGColor, (__bridge id)self.privateColors[0].CGColor];
+//        } else if (index % 2 == 1) {
+//            return @[(__bridge id)self.privateColors[index / 2].CGColor, (__bridge id)self.privateColors[index / 2].CGColor];
+//        } else {
+//            return @[(__bridge id)self.privateColors[index / 2-1].CGColor, (__bridge id)self.privateColors[index/2].CGColor];
+//        }
+//    } else {
         if (index % 2 == 1) {
             return @[(__bridge id)self.privateColors[index / 2].CGColor, (__bridge id)self.privateColors[((index) / 2 + 1)%self.privateColors.count].CGColor];
         } else {
             return @[(__bridge id)self.privateColors[(index) / 2].CGColor, (__bridge id)self.privateColors[(index) / 2].CGColor];
         }
-    }
+//    }
     assert(NO);
     return nil;
 }
