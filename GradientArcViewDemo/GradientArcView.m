@@ -15,6 +15,7 @@
 #define kDefaultArcWidth 35.0
 
 #define kAngleOffset (M_PI / 6)
+#define kThreeColorOffset (M_PI / 3)
 
 @interface GradientArcView ()
 
@@ -127,11 +128,11 @@
     for (int i=0;i<MIN(self.stepCount, self.displayNum);i++) {
         CAGradientLayer *gradientLayer = self.gradientLayers[i];
         gradientLayer.position = self.boundsCenter;
-        gradientLayer.bounds = self.bounds;
+        gradientLayer.bounds = self.bounds;//CGRectMake(0, 0, self.arcRadius * 2 + self.arcWidth, self.arcRadius * 2 + self.arcWidth);
         gradientLayer.colors = [self colorsAtStep:i];
         gradientLayer.locations = @[@0.0, @1.0];
-        gradientLayer.startPoint = CGPointMake(self.arcRadius / CGRectGetWidth(gradientLayer.bounds) * 0.8, 0.0);
-        gradientLayer.endPoint = CGPointMake(0.0, self.arcRadius / CGRectGetHeight(gradientLayer.bounds) * 0.8);
+        gradientLayer.startPoint = [self startPointAtStep:i];
+        gradientLayer.endPoint = [self endPointAtStep:i];
         gradientLayer.affineTransform = [self gradientAffineTransformAtIndex:i];
     }
 }
@@ -200,44 +201,26 @@
     return CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds));
 }
 
-- (CGAffineTransform)gradientAffineTransformAtIndex:(NSUInteger)index {
-    if (self.stepCount == 1) {
-        return CGAffineTransformConcat( CGAffineTransformMakeScale(CGRectGetHeight(self.bounds) / CGRectGetWidth(self.bounds), CGRectGetWidth(self.bounds) / CGRectGetHeight(self.bounds)), CGAffineTransformMakeRotation(self.startAngle + self.angleSpan / 2));
-    } else if (fabs(self.angleStep - M_PI) < 1e-6) {
-        return CGAffineTransformIdentity;
-    } else if (self.angleSpan < M_PI * 2 && self.stepCount > 2){
-        return CGAffineTransformConcat(
-                                       CGAffineTransformMakeTranslation(self.boundsCenter.x, self.boundsCenter.y),
-                                       CGAffineTransformConcat([self shearTransformForAngle: [self shearAngleAtStep:index]],
-                                                               CGAffineTransformMakeRotation([self rotateAngleAtStep:index])));
-    } else {
-        return CGAffineTransformConcat(
-                                CGAffineTransformMakeTranslation(self.boundsCenter.x, self.boundsCenter.y),
-                                CGAffineTransformConcat(
-                                                        [self shearTransformForAngle: [self shearAngleAtStep:index]],
-                                                        CGAffineTransformMakeRotation([self rotateAngleAtStep:index])
-                                                        )
-                                       );
-    }
-    
-}
-
 - (NSUInteger)stepCount {
     assert (_privateColors.count >= 0);
     if (_privateColors.count == 0) return 0;
     if (self.angleSpan < M_PI * 2) {
-        if (_privateColors.count == 1) return 1;
-        else return _privateColors.count * 2 - 1 + 2;
+        if (_privateColors.count <= 2) return 1;
+        else if (_privateColors.count == 3 && self.angleSpan >= M_PI_2 * 3) return 5;
+        else return _privateColors.count - 1 + 2;
     } else {
-        return _privateColors.count *  2;
+        if (_privateColors.count == 2) return 1;
+        else return _privateColors.count;
     }
 }
 
 - (CGFloat)angleStep {
     if (self.angleSpan < M_PI * 2) {
-        return self.angleSpan / (self.privateColors.count * 2 - 1);
+        if (_privateColors.count == 3 && self.angleSpan >= M_PI_2 * 3)
+            return self.angleSpan / (self.privateColors.count - 1);
+        else return self.angleSpan / (self.privateColors.count - 1);
     } else {
-        return self.angleSpan / (self.privateColors.count * 2);
+        return self.angleSpan / self.privateColors.count ;
     }
 }
 
@@ -249,28 +232,60 @@
     return M_PI * 2 - self.angleSpan > kAngleOffset ? M_PI * 2 - self.angleSpan : kAngleOffset;
 }
 
+- (CGAffineTransform)gradientAffineTransformAtIndex:(NSUInteger)index {
+    if (self.stepCount == 1) {
+//        return CGAffineTransformConcat( CGAffineTransformMakeScale(CGRectGetHeight(self.bounds) / CGRectGetWidth(self.bounds), CGRectGetWidth(self.bounds) / CGRectGetHeight(self.bounds)), CGAffineTransformMakeRotation(0));
+        return CGAffineTransformMakeRotation(self.startAngle + (self.angleSpan / 2 - M_PI_2));
+    } else if (fabs(self.angleStep - M_PI) < 1e-6) {
+        return CGAffineTransformIdentity;
+    } else if (self.angleSpan < M_PI * 2 && self.stepCount >= 2) {
+        return CGAffineTransformConcat(
+                                       CGAffineTransformMakeTranslation(self.boundsCenter.x, self.boundsCenter.y),
+                                       CGAffineTransformConcat([self shearTransformForAngle: [self shearAngleAtStep:index]],
+                                                               CGAffineTransformMakeRotation([self rotateAngleAtStep:index])));
+    } else {
+        return CGAffineTransformConcat(
+                                       CGAffineTransformMakeTranslation(self.boundsCenter.x, self.boundsCenter.y),
+                                       CGAffineTransformConcat(
+                                                               [self shearTransformForAngle: [self shearAngleAtStep:index]],
+                                                               CGAffineTransformMakeRotation([self rotateAngleAtStep:index])
+                                                               )
+                                       );
+    }
+}
+
 - (CGFloat)shearAngleAtStep:(NSUInteger)index {
     if (self.angleSpan < M_PI * 2 && self.stepCount > 2) {
-        if (index == 0 || index == self.stepCount - 1) {
-            return (self.clockwise?1:-1) * ((2 * M_PI - self.angleSpan ) / 2 > M_PI / 6 ? M_PI / 6 : (2 * M_PI - self.angleSpan ) / 2);
+
+        
+        if (self.privateColors.count == 3 && self.angleSpan >= M_PI_2 * 3) {
+            if (index == 0 || index == self.stepCount - 1) {
+                return (self.clockwise?1:-1) * ((2 * M_PI - self.angleSpan ) / 2 > M_PI / 6 ? M_PI / 6 : (2 * M_PI - self.angleSpan) / 2);
+            } else if (index == 1) {
+                return (self.clockwise?1:-1) * kThreeColorOffset;
+            } else {
+                return (self.clockwise?1:-1) * (self.angleStep - kThreeColorOffset / 2) ;
+            }
         } else {
-            return (self.clockwise?1:-1) * self.angleStep;
+            if (index == 0 || index == self.stepCount - 1) {
+                return (self.clockwise?1:-1) * ((2 * M_PI - self.angleSpan ) / 2 > M_PI / 6 ? M_PI / 6 : (2 * M_PI - self.angleSpan) / 2);
+            } else {
+                return (self.clockwise?1:-1) * self.angleStep;
+            }
         }
     } else {
         return self.angleStep;
     }
 }
 
-- (CGAffineTransform)shearTransformForAngle:(CGFloat)angle {
-    return CGAffineTransformMake(1.0, 0.0, cosf(angle), sinf(angle), 0.0, 0.0);
-}
-
 - (CGFloat)rotateAngleAtStep:(NSUInteger)index {
     if (self.angleSpan < M_PI * 2 && self.stepCount > 2) {
         if (index == 0) {
             return  -[self shearAngleAtStep:index] + self.startAngle;
+        } else if (index == 1) {
+            return self.startAngle;
         } else {
-             return (self.clockwise?1:-1) * self.angleStep  * (index - 1) + self.startAngle;
+            return [self rotateAngleAtStep:(index-1)] + [self shearAngleAtStep:(index-1)];
         }
     } else {
         return self.angleStep * index;
@@ -280,31 +295,58 @@
 - (NSArray*)colorsAtStep:(NSUInteger)index {
     assert (self.stepCount > 0 && index >= 0 && index < self.stepCount);
     if (self.stepCount == 1) {
-        return @[(__bridge id)self.privateColors[0].CGColor, (__bridge id)self.privateColors[1%(self.privateColors.count)].CGColor];
+        return @[(__bridge id)self.privateColors[1%(self.privateColors.count)].CGColor, (__bridge id)self.privateColors[0].CGColor];
     } else if (self.angleSpan < M_PI * 2) {
-        if (index == self.stepCount - 1) {
-            return @[(__bridge id)self.privateColors[index/2-1].CGColor, (__bridge id)self.privateColors[index/2-1].CGColor];
-        } else if (index == 0) {
-            return @[(__bridge id)self.privateColors[0].CGColor, (__bridge id)self.privateColors[0].CGColor];
-        } else if (index % 2 == 1) {
-            return @[(__bridge id)self.privateColors[index / 2].CGColor, (__bridge id)self.privateColors[index / 2].CGColor];
-        } else {
-            return @[(__bridge id)self.privateColors[index / 2-1].CGColor, (__bridge id)self.privateColors[index/2].CGColor];
-        }
+            if (self.privateColors.count == 3 && self.angleSpan >= M_PI_2 * 3) {
+                if (index == 0) {
+                    return @[(__bridge id)self.privateColors[0].CGColor, (__bridge id)self.privateColors[0].CGColor];
+                }else if (index == self.stepCount - 1) {
+                    return @[(__bridge id)self.privateColors[index/2].CGColor, (__bridge id)self.privateColors[index/2].CGColor];
+                }else if (index == 1) {
+                    return @[(__bridge id)self.privateColors[0].CGColor, (__bridge id)self.privateColors[0].CGColor];
+                } else {
+                    return @[(__bridge id)self.privateColors[(index-1)/2].CGColor, (__bridge id)self.privateColors[(index-1)/2+1].CGColor];
+                }
+            } else {
+                if (index == self.stepCount - 1) {
+                    return @[(__bridge id)self.privateColors[index-1].CGColor, (__bridge id)self.privateColors[index-1].CGColor];
+                } else if (index == 0) {
+                    return @[(__bridge id)self.privateColors[0].CGColor, (__bridge id)self.privateColors[0].CGColor];
+                } else {
+                    return @[(__bridge id)self.privateColors[index-1].CGColor, (__bridge id)self.privateColors[index].CGColor];
+                }
+            }
     } else {
-        if (index % 2 == 1) {
-            return @[(__bridge id)self.privateColors[index / 2].CGColor, (__bridge id)self.privateColors[((index) / 2 + 1)%self.privateColors.count].CGColor];
-        } else {
-            return @[(__bridge id)self.privateColors[(index) / 2].CGColor, (__bridge id)self.privateColors[(index) / 2].CGColor];
-        }
+        return @[(__bridge id)self.privateColors[(index - 1 + self.privateColors.count) % self.privateColors.count].CGColor, (__bridge id)self.privateColors[index].CGColor];
     }
     assert(NO);
     return nil;
 }
 
+- (CGPoint)startPointAtStep:(NSUInteger)index {
+    if (self.stepCount == 1) {
+        return CGPointMake(0.5, 0.0);
+    } else {
+        return CGPointMake(self.arcRadius / CGRectGetWidth(self.bounds) * 0.8, 0.0);
+    }
+}
+
+- (CGPoint)endPointAtStep:(NSUInteger)index {
+    if (self.stepCount == 1) {
+        return CGPointMake(1.0, 0.0);
+    } else {
+        return CGPointMake(0.0, self.arcRadius / CGRectGetWidth(self.bounds) * 0.8);
+    }
+}
+
 - (NSArray*)locationsAtStep:(NSUInteger)index {
     assert (self.privateColors.count > 0 && index >= 0 && index < self.stepCount);
     return nil;
+}
+
+
+- (CGAffineTransform)shearTransformForAngle:(CGFloat)angle {
+    return CGAffineTransformMake(1.0, 0.0, cosf(angle), sinf(angle), 0.0, 0.0);
 }
 
 
