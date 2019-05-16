@@ -19,6 +19,8 @@
 #define kColorNumMin 0
 #define kArcWidthMax 50.0
 #define kArcWidthMin 0
+#define kDisplayNumMax 2 * kColorNumMax + 2
+#define kDisplayNumMin 0
 
 @interface ViewController ()
 
@@ -27,11 +29,15 @@
 @property (weak, nonatomic) IBOutlet UISlider *endAngleSlider;
 @property (weak, nonatomic) IBOutlet UISlider *colorNumSlider;
 @property (weak, nonatomic) IBOutlet UISlider *arcWidthSlider;
+@property (weak, nonatomic) IBOutlet UISlider *displayNumSlider;
+
 @property (weak, nonatomic) IBOutlet UISwitch *clockwiseSW;
 @property (weak, nonatomic) IBOutlet UILabel *startAngleValueLab;
 @property (weak, nonatomic) IBOutlet UILabel *endAngleValueLab;
 @property (weak, nonatomic) IBOutlet UILabel *colorNumValueLab;
 @property (weak, nonatomic) IBOutlet UILabel *arcWidthValueLab;
+@property (weak, nonatomic) IBOutlet UILabel *displayNumLab;
+
 
 @property (nonatomic, strong) NSArray *colorChoices;
 
@@ -40,6 +46,7 @@
 @property (nonatomic, assign) NSUInteger colorNum;
 @property (nonatomic, assign) CGFloat arcWidth;
 @property (nonatomic, assign) BOOL clockwise;
+@property (nonatomic, assign) NSUInteger displayNum;
 
 @end
 
@@ -56,6 +63,9 @@
     self.arcWidthSlider.minimumValue = kArcWidthMin;
     self.arcWidthSlider.maximumValue = kArcWidthMax;
     
+    self.displayNumSlider.minimumValue = kDisplayNumMin;
+    self.displayNumSlider.maximumValue = kDisplayNumMax;
+    
     self.startAngleSlider.continuous = self.endAngleSlider.continuous = self.colorNumSlider.continuous = self.arcWidthSlider.continuous = YES;
 }
 
@@ -69,6 +79,7 @@
     self.endAngle = kEndAngleMax * 2 / 3;
     self.colorNum = (kColorNumMin + kColorNumMax) / 2;
     self.arcWidth = (kArcWidthMin + kArcWidthMax) / 2;
+    self.displayNum = kDisplayNumMax;
     self.clockwise = YES;
     
 }
@@ -118,6 +129,13 @@
     _clockwise = clockwise;
 }
 
+- (void)setDisplayNum:(NSUInteger)displayNum {
+    self.gradientView.displayNum = displayNum;
+    self.displayNumSlider.value = displayNum;
+    self.displayNumLab.text = [NSString stringWithFormat:@"%ld", displayNum];
+    _displayNum = displayNum;
+}
+
 #pragma mark - actions
 - (IBAction)changeStartAngle:(UISlider *)sender {
     self.startAngle = sender.value;
@@ -138,6 +156,11 @@
 - (IBAction)changeClockwise:(UISwitch *)sender {
     self.clockwise = sender.isOn;
 }
+
+- (IBAction)changeDisplayNum:(UISlider *)sender {
+    self.displayNum = sender.value;
+}
+
 
 
 @end

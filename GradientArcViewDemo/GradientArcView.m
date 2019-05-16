@@ -124,7 +124,7 @@
 }
 
 - (void)setupGradientLayers {
-    for (int i=0;i<self.stepCount;i++) {
+    for (int i=0;i<MIN(self.stepCount, self.displayNum);i++) {
         CAGradientLayer *gradientLayer = self.gradientLayers[i];
         gradientLayer.position = self.boundsCenter;
         gradientLayer.bounds = self.bounds;
@@ -167,6 +167,12 @@
     [self.layer setNeedsDisplay];
 }
 
+- (void)setDisplayNum:(NSUInteger)displayNum {
+    _displayNum = displayNum;
+    [self removeArcLayer];
+    [self createArcLayer];
+    [self.layer setNeedsDisplay];
+}
 
 - (void)addColor:(UIColor *)color {
     [_privateColors addObject:color];
@@ -195,40 +201,21 @@
 }
 
 - (CGAffineTransform)gradientAffineTransformAtIndex:(NSUInteger)index {
-
     if (self.stepCount == 1) {
-        return CGAffineTransformIdentity;//CGAffineTransformConcat( CGAffineTransformMakeScale(CGRectGetHeight(self.bounds) / CGRectGetWidth(self.bounds), CGRectGetWidth(self.bounds) / CGRectGetHeight(self.bounds)), CGAffineTransformMakeRotation(self.startAngle + self.angleSpan / 2));
+        return CGAffineTransformConcat( CGAffineTransformMakeScale(CGRectGetHeight(self.bounds) / CGRectGetWidth(self.bounds), CGRectGetWidth(self.bounds) / CGRectGetHeight(self.bounds)), CGAffineTransformMakeRotation(self.startAngle + self.angleSpan / 2));
     } else if (fabs(self.angleStep - M_PI) < 1e-6) {
         return CGAffineTransformIdentity;
     } else if (self.angleSpan < M_PI * 2 && self.stepCount > 2){
-        CGFloat shearAngle;
-        CGFloat rotateAngle;
-        
-        if (index == 0 || index == self.stepCount - 1) {
-            shearAngle = (self.clockwise?1:-1) * ((2 * M_PI - self.angleSpan ) / 2 > M_PI / 6 ? M_PI / 6 : (2 * M_PI - self.angleSpan ) / 2);
-        } else {
-            shearAngle = (self.clockwise?1:-1) * self.angleStep;
-        }
-    
-        if (index == 0) {
-            rotateAngle =  -shearAngle + self.startAngle;
-        } else {
-            rotateAngle = self.angleStep * (index - 1) + self.startAngle;
-            rotateAngle = (self.clockwise?1:-1) * self.angleStep  * (index - 1) + self.startAngle;
-        }
-    
-        CGAffineTransform shearAffineTransform = CGAffineTransformMake(1.0, 0.0, cosf(shearAngle), sinf(shearAngle), 0.0, 0.0);
-        
         return CGAffineTransformConcat(
                                        CGAffineTransformMakeTranslation(self.boundsCenter.x, self.boundsCenter.y),
-                                       CGAffineTransformConcat(shearAffineTransform,CGAffineTransformMakeRotation(rotateAngle)));
+                                       CGAffineTransformConcat([self shearTransformForAngle: [self shearAngleAtStep:index]],
+                                                               CGAffineTransformMakeRotation([self rotateAngleAtStep:index])));
     } else {
-        CGAffineTransform shearAffineTransform = CGAffineTransformMake(1.0, 0.0, cosf(self.angleStep), sinf(self.angleStep), 0.0, 0.0);
         return CGAffineTransformConcat(
                                 CGAffineTransformMakeTranslation(self.boundsCenter.x, self.boundsCenter.y),
                                 CGAffineTransformConcat(
-                                                        shearAffineTransform,
-                                                        CGAffineTransformMakeRotation(self.angleStep * index)
+                                                        [self shearTransformForAngle: [self shearAngleAtStep:index]],
+                                                        CGAffineTransformMakeRotation([self rotateAngleAtStep:index])
                                                         )
                                        );
     }
@@ -260,6 +247,34 @@
 
 - (CGFloat)angleOffset {
     return M_PI * 2 - self.angleSpan > kAngleOffset ? M_PI * 2 - self.angleSpan : kAngleOffset;
+}
+
+- (CGFloat)shearAngleAtStep:(NSUInteger)index {
+    if (self.angleSpan < M_PI * 2 && self.stepCount > 2) {
+        if (index == 0 || index == self.stepCount - 1) {
+            return (self.clockwise?1:-1) * ((2 * M_PI - self.angleSpan ) / 2 > M_PI / 6 ? M_PI / 6 : (2 * M_PI - self.angleSpan ) / 2);
+        } else {
+            return (self.clockwise?1:-1) * self.angleStep;
+        }
+    } else {
+        return self.angleStep;
+    }
+}
+
+- (CGAffineTransform)shearTransformForAngle:(CGFloat)angle {
+    return CGAffineTransformMake(1.0, 0.0, cosf(angle), sinf(angle), 0.0, 0.0);
+}
+
+- (CGFloat)rotateAngleAtStep:(NSUInteger)index {
+    if (self.angleSpan < M_PI * 2 && self.stepCount > 2) {
+        if (index == 0) {
+            return  -[self shearAngleAtStep:index] + self.startAngle;
+        } else {
+             return (self.clockwise?1:-1) * self.angleStep  * (index - 1) + self.startAngle;
+        }
+    } else {
+        return self.angleStep * index;
+    }
 }
 
 - (NSArray*)colorsAtStep:(NSUInteger)index {

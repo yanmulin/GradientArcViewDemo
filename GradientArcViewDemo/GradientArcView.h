@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) CGFloat endAngle;
 @property (nonatomic, assign) BOOL clockwise;
 @property (nonatomic, strong, readonly) NSArray<UIColor *> *colors;
+@property (nonatomic, assign) NSUInteger displayNum;
 
 - (instancetype)initWithFrame:(CGRect)frame startAtAngle:(CGFloat)startAngle endAtAngle:(CGFloat)endAngle width:(CGFloat)width clockwise:(BOOL)clockwise colors:(NSArray<UIColor *> *)colors;
 - (void)addColor:(UIColor *)color;
