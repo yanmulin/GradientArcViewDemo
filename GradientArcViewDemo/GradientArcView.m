@@ -90,7 +90,7 @@
             (!self.clockwise && self.startAngle > self.endAngle)) {
             [self setupGradientLayers];
             [self setupArcShapeLayer];
-            [self.gradientLayer setMask:_arcLayer];
+//            [self.gradientLayer setMask:_arcLayer];
         }
     }
 }
@@ -256,8 +256,6 @@
 
 - (CGFloat)shearAngleAtStep:(NSUInteger)index {
     if (self.angleSpan < M_PI * 2 && self.stepCount > 2) {
-
-        
         if (self.privateColors.count == 3 && self.angleSpan >= M_PI_2 * 3) {
             if (index == 0 || index == self.stepCount - 1) {
                 return (self.clockwise?1:-1) * ((2 * M_PI - self.angleSpan ) / 2 > M_PI / 6 ? M_PI / 6 : (2 * M_PI - self.angleSpan) / 2);
