@@ -125,7 +125,7 @@ CGAffineTransformMakeRotation(self.angleStep * i)
 
 ## 最终效果
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-5.png)
+![基于CAla<x>yer和仿射变换实现无限颜色的渐变圆弧-5.png](https://i.loli.net/2019/06/13/5d01a6b8155b624597.png)
 
 ## 总结
 
