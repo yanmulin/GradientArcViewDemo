@@ -22,14 +22,14 @@
 
 实现的效果如下图：
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-5.png)
+![基于CAlayer和仿射变换实现无限颜色的渐变圆弧-5.png](https://i.loli.net/2019/06/13/5d01a6b8155b624597.png)
 
 
 ## 基本思路
 
 将一个圆弧/圆环等分成很多个渐变层，令纯色层和渐变层交替出现。如下图所示，红色代表纯色层，灰色代表从上一个颜色到下一个颜色的渐变层。
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-1.png)
+![基于CAlayer和仿射变换实现无限颜色的渐变圆弧-1.png](https://i.loli.net/2019/06/13/5d01a80f6d32e50492.png)
 
 然后用仿射变换将矩形的`CAGradientLayer`映射到该色块上。仿射变换可以将矩形变换到平行四边形，学名叫剪切，shear。苹果的`CGAffineTransform`相关函数并没有提供从矩形到平行四边形的仿射变换，所以需要自己求解仿射变换矩形。下面介绍仿射变换和剪切矩阵的求解方法。
 
@@ -57,21 +57,21 @@
 
 矩形到平行四边形的仿射变换如下图：
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-2.png)
+![基于CAlayer和仿射变换实现无限颜色的渐变圆弧-2.png](https://i.loli.net/2019/06/13/5d01a6b7debb114086.png)
 
 tx和tyb代表平移，直接赋值为0。其他变量代入上面的线性方程组：
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-3.gif)
+![基于CAlayer和仿射变换实现无限颜色的渐变圆弧-3.gif](https://i.loli.net/2019/06/13/5d01a6b7d4c5356257.gif)  
 
 得到解：
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-4.gif)
+![基于CAlayer和仿射变换实现无限颜色的渐变圆弧-4.gif](https://i.loli.net/2019/06/13/5d01a6b7d6e9c89505.gif)  
 
 将a, b, c, d的值分别代入`CGAffineTransformMake()`的各项参数，得到代码：
 
 ```
 - (CGAffineTransform)shearAffineTransformForAngle:(CGFloat)angle {
-    return CGAffineTransformMake(1.0, 0.0, cosf(angle), sinf(angle), 0.0, 0.0);
+return CGAffineTransformMake(1.0, 0.0, cosf(angle), sinf(angle), 0.0, 0.0);
 }
 ```
 
@@ -83,13 +83,13 @@ tx和tyb代表平移，直接赋值为0。其他变量代入上面的线性方�
 
 ```
 gradientLayer.affineTransform =    
-    CGAffineTransformConcat(
-        CGAffineTransformMakeTranslation(self.boundsCenter.x, self.boundsCenter.y), 
-        CGAffineTransformConcat(
-            self.shearAffineTransform, 
-            CGAffineTransformMakeRotation(self.angleStep * i)
-        )
-    );
+CGAffineTransformConcat(
+CGAffineTransformMakeTranslation(self.boundsCenter.x, self.boundsCenter.y), 
+CGAffineTransformConcat(
+self.shearAffineTransform, 
+CGAffineTransformMakeRotation(self.angleStep * i)
+)
+);
 ```
 
 先进行剪切的原因是这个剪切的性质是确保与x轴平行的边不会发生变化，如果先进行旋转则两条边都会被“剪切”。
@@ -100,11 +100,11 @@ gradientLayer.affineTransform =
 
 编写代码时会发现，如果将笔触的线头设置为圆头，这个线头则无法被渐变层覆盖。
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-6.png)
+![基于CAlayer和仿射变换实现无限颜色的渐变圆弧-6.png](https://i.loli.net/2019/06/13/5d01a6b817a2116509.png)
 
 所以我们将圆弧划分成2N-1+2块，多出来2块用来覆盖线头。这多出来的两块角度跨度根据没有利用的角度范围决定。
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-7.png)
+![基于CAlayer和仿射变换实现无限颜色的渐变圆弧-7.png](https://i.loli.net/2019/06/13/5d01a6b82ed3730779.png)
 
 
 ## 特殊的测试用例
@@ -135,16 +135,16 @@ gradientLayer.affineTransform =
 
 渐变块间隔着纯色块的划分方式不能保证渐变块最大。如果有N种颜色，将圆弧划分成N-1个渐变块，圆环N个渐变块，中间没有纯色块，这样就使得渐变块最大。划分方式如下图，全部都是渐变块，无纯色块。
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-8.png)
+![基于CAlayer和仿射变换实现无限颜色的渐变圆弧-8.png](https://i.loli.net/2019/06/13/5d01a6b80215b44070.png)
 
 这种划分方式会如果划分成2块（圆弧3种颜色，圆环2种颜色），角度跨度较大，每块接近180度，则仿射变换后的CAGradientLayer形状向一条直线趋近，不能覆盖圆弧/圆弧。
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-9.png)
+![基于CAlayer和仿射变换实现无限颜色的渐变圆弧-9.png](https://i.loli.net/2019/06/13/5d01a6b83a74522878.png)
 
 所以要为圆环2种颜色，圆弧3种颜色设计新的划分方案。本文采用的方案是，无论（圆环/圆弧）2种颜色时，用一个渐变块；圆弧3种颜色且角度跨度大于270度时，添加一个纯色块。
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-10.png)
+![基于CAlayer和仿射变换实现无限颜色的渐变圆弧-10.png](https://i.loli.net/2019/06/13/5d01a6b8e22f277896.png)
 
-![1](/images/2019-05-16/基于CALayer和仿射变换实现无限颜色的渐变圆弧-11.png)
+![基于CAlayer和仿射变换实现无限颜色的渐变圆弧-11.png](https://i.loli.net/2019/06/13/5d01a6ba52b1911178.png)
 
 为了代码可读性和扩展性，本文还将所有计算变换的部分提炼成函数，比如计算剪切角度、仿射矩阵等等。
